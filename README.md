@@ -13,7 +13,7 @@ Features description:
 * Supports Simple unit testing.
 * Handles more than one entry point in the project.
 
-***NOTICE***: Easymake is designed to be easy to use on some simple applications, not as a highly flexible or extensible template. If you want to be more customizable, you may take a look at [this](https://gist.github.com/samuelsmal/e43f2001cfc81fee18b6) for start.
+***NOTICE***: Easymake is designed to be easy to use on some simple applications, not as a highly flexible or extensible template. If you want more customization, you may take a look at [this](https://gist.github.com/samuelsmal/e43f2001cfc81fee18b6) for start.
 
 ## Getting Started ##
 
