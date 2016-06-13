@@ -51,7 +51,7 @@ Easymake is trying to follow the Makefile Conventions [(1)](https://www.gnu.org/
 
 ### Suggested Style
 
-In the GIFs, I simply copy `easymake.mk` to my souce code directory as a makefile. However. for code simplicity, I suggest you use easymake as the following way:
+In the GIFs, I simply copy `easymake.mk` into my souce code directory as a makefile. However. for code simplicity, I suggest you use easymake as the following way:
 
 ```
 CXXFLAGS=-O2
