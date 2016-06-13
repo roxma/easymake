@@ -297,6 +297,10 @@ $(BUILD_ROOT)/%.a: $(easymake_all_cppobjects) $(easymake_all_cobjects)
 #	@echo -e "$@: $(call easymake_get_objects,NONE)\neasymake_nontest_built_entry_list+=$(call easymake_get_entry,NONE)" > $(easymake_f_targets_dep_prefix)_$(notdir $@).d
 	$(AR) $(ARFLAGS) $@ $(call easymake_get_objects,NONE)
 
+# "check" is the standard target from standard makefile conventions
+check: test
+check:
+
 test: $(easymake_all_cppobjects) $(easymake_all_cobjects)
 	@$(foreach e, $(easymake_test_entry_list), $(call easymake_cmd_echo_and_exec, $(easymake_linker) -o $(call easymake_get_target,$(e)) $(call easymake_get_objects,$(e)) $(LDFLAGS))  && ) true
 	@echo 
