@@ -41,8 +41,11 @@ Why bother writing a Makefile?
 
 ### Options
 
-- `CFLAGS` compiler flags for .c files.
-- `CXXFLAGS` compiler flags for .cpp files.
-- `LDFLAGS` linker flags
-- `ARFLAGS` linker flags
+Easymake is trying to use the [Standard Makefile Conventions](https://www.gnu.org/prep/standards/html_node/Makefile-Conventions.html). The following options are supported.
+
+- `CFLAGS` Extra flags to give to the C compiler.
+- `CXXFLAGS` Extra flags to give to the C++ compiler.
+- `LDFLAGS` Extra flags to give to compilers when they are supposed to invoke the linker
+- `LDLIBS` Library flags or names given to compilers when they are supposed to invoke the linker
+- `ARFLAGS` Flags to give the archive-maintaining program; default `cr`
 

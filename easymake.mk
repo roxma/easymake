@@ -230,8 +230,8 @@ easymake_build_goals:=$(filter-out $(BUILD_ROOT)/%.o $(BUILD_ROOT)/%.d $(BUILD_R
 #
 $(BUILD_ROOT)/%.o: %.$(CXXEXT)
 	@mkdir -p $(dir $@)
-	$(CXX) -c -o $@ $(word 1,$^) $(CXXFLAGS)
-	@$(CXX) -MM -MP -MF"$(@:.o=.d)" -MT"$@" $(CXXFLAGS) $(word 1,$^) 
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c -o $@  $(word 1,$^) 
+	@$(CXX) -MM -MP -MF"$(@:.o=.d)" -MT"$@" $(CPPFLAGS) $(CXXFLAGS) $(word 1,$^) 
 	@if [ ! -f $(easymake_f_detected_entries) ]; then echo " " > $(easymake_f_detected_entries); fi;
 	@grep -v "^$(patsubst $(BUILD_ROOT)/%.o,%.$(CXXEXT),$@)$$" $(easymake_f_detected_entries) > $(BUILD_ROOT)/easymake_entries_tmp.d 
 	@cp $(BUILD_ROOT)/easymake_entries_tmp.d $(easymake_f_detected_entries)
@@ -239,8 +239,8 @@ $(BUILD_ROOT)/%.o: %.$(CXXEXT)
 
 $(BUILD_ROOT)/%.o: %.$(CEXT)
 	@mkdir -p $(dir $@)
-	$(CC) -c -o $@ $(word 1,$^) $(CFLAGS)
-	@$(CC) -MM -MP -MF"$(@:.o=.d)" -MT"$@" $(CFLAGS) $(word 1,$^) 
+	$(CC) $(CPPFLAGS) $(CFLAGS)  -c -o $@ $(word 1,$^)
+	@$(CC) -MM -MP -MF"$(@:.o=.d)" -MT"$@" $(CPPFLAGS) $(CFLAGS) $(word 1,$^) 
 	@if [ ! -f $(easymake_f_detected_entries) ]; then echo " " > $(easymake_f_detected_entries); fi;
 	@grep -v "^$(patsubst $(BUILD_ROOT)/%.o,%.$(CEXT),$@)$$" $(easymake_f_detected_entries) > $(BUILD_ROOT)/easymake_entries_tmp.d 
 	@cp $(BUILD_ROOT)/easymake_entries_tmp.d $(easymake_f_detected_entries)
@@ -285,12 +285,12 @@ $(filter-out $(easymake_nontest_built_target_list),$(filter-out all %.so %.a,$(e
 $(filter-out $(easymake_nontest_built_target_list),$(filter-out all %.so %.a,$(easymake_build_goals))) $(filter-out %.so,$(easymake_nontest_built_target_list)):
 	@echo 
 	@echo -e "$@: $(call easymake_get_objects,$(call easymake_check_so_target,$(notdir $@)))\neasymake_nontest_built_entry_list+=$(call easymake_get_entry,$(call easymake_check_so_target,$(notdir $@)))" > $(easymake_f_targets_dep_prefix)_$(notdir $@).d
-	$(easymake_linker) -o $@ $(call easymake_get_objects,$(call easymake_check_so_target,$(notdir $@))) $(LDFLAGS)
+	$(easymake_linker) $(LDFLAGS) -o $@ $(call easymake_get_objects,$(call easymake_check_so_target,$(notdir $@))) $(LOADLIBES) $(LDLIBS)
 
 $(BUILD_ROOT)/%.so: $(easymake_all_cppobjects) $(easymake_all_cobjects)
 	@echo 
 	@echo -e "$@: $(call easymake_get_objects,NONE)\neasymake_nontest_built_entry_list+=$(call easymake_get_entry,NONE)" > $(easymake_f_targets_dep_prefix)_$(notdir $@).d
-	$(easymake_linker) -o $@ $(call easymake_get_objects,NONE) $(LDFLAGS)
+	$(easymake_linker) $(LDFLAGS) -o $@ $(call easymake_get_objects,NONE) $(LOADLIBES) $(LDLIBS)
 
 $(BUILD_ROOT)/%.a: $(easymake_all_cppobjects) $(easymake_all_cobjects)
 	@echo
