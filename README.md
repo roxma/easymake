@@ -39,3 +39,10 @@ Why bother writing a Makefile?
 
 ![multi_entries](./doc/images/multi_entries.gif)
 
+### Options
+
+- `CFLAGS` compiler flags for .c files.
+- `CXXFLAGS` compiler flags for .cpp files.
+- `LDFLAGS` linker flags
+- `ARFLAGS` linker flags
+
