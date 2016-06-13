@@ -1,4 +1,4 @@
-# Getting Started with Easymake #
+# Easymake - Why Bother To Write Makefile? #
 
 
   
@@ -34,8 +34,6 @@ Files with `*_test.cpp` or `*_test.c` pattern will be used for testing (inspired
 ![unit_test](./doc/images/unit_test.gif)
 
 ### Multi Entries
-
-Why bother writing a Makefile?
 
 ![multi_entries](./doc/images/multi_entries.gif)
 
