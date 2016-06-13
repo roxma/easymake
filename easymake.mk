@@ -9,14 +9,16 @@
 
 # basic settings
 
+# CFLAGS=
+# CXXFLAGS=
+# LDFLAGS=
+ARFLAGS?=cr
+
 # do not use ./bin
 BUILD_ROOT?=bin
 
-# CFLAGS=
-# CPPFLAGS=
-# LDFLAGS=
 
-CPPEXT?=cpp
+CXXEXT?=cpp
 CEXT?=c
 
 CC?=gcc
@@ -144,38 +146,38 @@ ifneq (,$(call BeginWith,./,$(BUILD_ROOT)))
     $(error Please do not use prefix "./" in variable BUILD_ROOT=$(BUILD_ROOT))
 endif
 
-# if CPPSOURCES are not specified, automatically scan all .$(CPPEXT) files in the 
+# if CXXSRC are not specified, automatically scan all .$(CXXEXT) files in the 
 # current directories.
-ifeq ($(strip $(CPPSOURCES)),)
-    CPPSOURCES:=$(call RWildcard,,*.$(CPPEXT)) $(foreach dir,$(VPATH),$(foreach src,$(call RWildcard,$(dir),*.$(CPPEXT)),$(src:$(dir)/%=%)))
-    CPPSOURCES:=$(strip $(CPPSOURCES))
+ifeq ($(strip $(CXXSRC)),)
+    CXXSRC:=$(call RWildcard,,*.$(CXXEXT)) $(foreach dir,$(VPATH),$(foreach src,$(call RWildcard,$(dir),*.$(CXXEXT)),$(src:$(dir)/%=%)))
+    CXXSRC:=$(strip $(CXXSRC))
 endif
-ifneq (,$(findstring ..,$(CPPSOURCES)))
-    $(error ".." should not appear in the cpp source list: $(CPPSOURCES))
+ifneq (,$(findstring ..,$(CXXSRC)))
+    $(error ".." should not appear in the cpp source list: $(CXXSRC))
 endif
 # remove "./" in file path, which may cause pattern rules problems.
-CPPSOURCES:=$(subst ./,,$(CPPSOURCES))
+CXXSRC:=$(subst ./,,$(CXXSRC))
 
-# if CSOURCES are not specified, automatically scan all .$(CEXT) files in the 
+# if CSRC are not specified, automatically scan all .$(CEXT) files in the 
 # current directories.
-ifeq ($(strip $(CSOURCES)),)
-    CSOURCES:=$(call RWildcard,,*.$(CEXT)) $(foreach dir,$(VPATH),$(foreach src,$(call RWildcard,$(dir),*.$(CEXT)),$(src:$(dir)/%=%)))
-    CSOURCES:=$(strip $(CSOURCES))
+ifeq ($(strip $(CSRC)),)
+    CSRC:=$(call RWildcard,,*.$(CEXT)) $(foreach dir,$(VPATH),$(foreach src,$(call RWildcard,$(dir),*.$(CEXT)),$(src:$(dir)/%=%)))
+    CSRC:=$(strip $(CSRC))
 endif
-ifneq (,$(findstring ..,$(CSOURCES)))
-    $(error ".." should not appear in the c source list: $(CSOURCES))
+ifneq (,$(findstring ..,$(CSRC)))
+    $(error ".." should not appear in the c source list: $(CSRC))
 endif
 # remove "./" in file path, which may cause pattern rules problems.
-CSOURCES:=$(subst ./,,$(CSOURCES))
+CSRC:=$(subst ./,,$(CSRC))
 
 # if the project has c++ source, use g++ for linking instead of gcc
-ifneq ($(strip $(CPPSOURCES)),)
+ifneq ($(strip $(CXXSRC)),)
     easymake_linker:=$(CXX)
 endif
 easymake_linker?=$(CC)
 
-easymake_all_cppobjects:=$(call GetCorrendingObjects,$(CPPSOURCES),$(BUILD_ROOT),$(CPPEXT))
-easymake_all_cobjects:=$(call GetCorrendingObjects,$(CSOURCES),$(BUILD_ROOT),$(CEXT))
+easymake_all_cppobjects:=$(call GetCorrendingObjects,$(CXXSRC),$(BUILD_ROOT),$(CXXEXT))
+easymake_all_cobjects:=$(call GetCorrendingObjects,$(CSRC),$(BUILD_ROOT),$(CEXT))
 
 
 # A file that contains a list of entries detected by easymake.
@@ -185,30 +187,6 @@ easymake_f_targets_dep_prefix:=$(BUILD_ROOT)/easymake_targets_dep
 
 # The default target should be "all", Conforming to the makefile conventions
 all:
-
-
-##
-# show variables in this make file
-#
-.PHONY: show
-show:
-	@echo "---------------------"
-	@echo "basic settings:"
-	@echo "BUILD_ROOT          : $(BUILD_ROOT)"
-	@echo "VPATH               : $(VPATH)"
-	@echo "CPPEXT              : $(CPPEXT)"
-	@echo "CEXT                : $(CEXT)"
-	@echo "CC                 : $(CC)"
-	@echo "CXX                 : $(CXX)"
-	@echo "LINKER              : $(LINKER)"
-	@echo "---------------------"
-	@echo "user settings:"
-	@echo "ENTRY_LIST          : $(ENTRY_LIST)"
-	@echo "ENTRY               : $(ENTRY)"
-	@echo "LINK_FLAGS          : $(LINK_FLAGS)"
-	@echo "AR_FLAGS            : $(AR_FLAGS)"
-	@echo "CPPSOURCES          : $(CPPSOURCES)"
-	@echo "CSOURCES            : $(CSOURCES)"
 
 
 ##
@@ -250,14 +228,14 @@ easymake_build_goals:=$(filter-out $(BUILD_ROOT)/%.o $(BUILD_ROOT)/%.d $(BUILD_R
 # 7. If there is a main function defined in this object, add this file into the 
 #    list defined in the file $(easymake_f_detected_entries).
 #
-$(BUILD_ROOT)/%.o: %.$(CPPEXT)
+$(BUILD_ROOT)/%.o: %.$(CXXEXT)
 	@mkdir -p $(dir $@)
-	$(CXX) -c -o $@ $(word 1,$^) $(CPPFLAGS)
-	@$(CXX) -MM -MP -MF"$(@:.o=.d)" -MT"$@" $(CPPFLAGS) $(word 1,$^) 
+	$(CXX) -c -o $@ $(word 1,$^) $(CXXFLAGS)
+	@$(CXX) -MM -MP -MF"$(@:.o=.d)" -MT"$@" $(CXXFLAGS) $(word 1,$^) 
 	@if [ ! -f $(easymake_f_detected_entries) ]; then echo " " > $(easymake_f_detected_entries); fi;
-	@grep -v "^$(patsubst $(BUILD_ROOT)/%.o,%.$(CPPEXT),$@)$$" $(easymake_f_detected_entries) > $(BUILD_ROOT)/easymake_entries_tmp.d 
+	@grep -v "^$(patsubst $(BUILD_ROOT)/%.o,%.$(CXXEXT),$@)$$" $(easymake_f_detected_entries) > $(BUILD_ROOT)/easymake_entries_tmp.d 
 	@cp $(BUILD_ROOT)/easymake_entries_tmp.d $(easymake_f_detected_entries)
-	@if [ $$(nm -g -C --format="posix" $@ | grep -c "^main T") -eq 1 ]; then echo "$(patsubst $(BUILD_ROOT)/%.o,%.$(CPPEXT),$@)" >> $(easymake_f_detected_entries) && echo "# main detected"; fi;
+	@if [ $$(nm -g -C --format="posix" $@ | grep -c "^main T") -eq 1 ]; then echo "$(patsubst $(BUILD_ROOT)/%.o,%.$(CXXEXT),$@)" >> $(easymake_f_detected_entries) && echo "# main detected"; fi;
 
 $(BUILD_ROOT)/%.o: %.$(CEXT)
 	@mkdir -p $(dir $@)
@@ -282,15 +260,15 @@ sinclude $(wildcard $(easymake_f_targets_dep_prefix)_*)
 
 
 # Read detected entries from file and filter out the unexisted.
-easymake_entry_list = $(ENTRY_LIST) $(foreach file,$(call ReadSettings,$(easymake_f_detected_entries)),$(filter $(file),$(CPPSOURCES) $(CSOURCES)))
+easymake_entry_list = $(ENTRY_LIST) $(foreach file,$(call ReadSettings,$(easymake_f_detected_entries)),$(filter $(file),$(CXXSRC) $(CSRC)))
 
-easymake_nontest_entry_list = $(filter-out %_test.$(CEXT),$(filter-out %_test.$(CPPEXT),$(easymake_entry_list)))
-easymake_test_entry_list = $(filter %_test.$(CEXT),$(easymake_entry_list)) $(filter %_test.$(CPPEXT),$(easymake_entry_list))
+easymake_nontest_entry_list = $(filter-out %_test.$(CEXT),$(filter-out %_test.$(CXXEXT),$(easymake_entry_list)))
+easymake_test_entry_list = $(filter %_test.$(CEXT),$(easymake_entry_list)) $(filter %_test.$(CXXEXT),$(easymake_entry_list))
 
 easymake_get_entry      = $(if $(filter $(1),NONE)$(filter $(1),none),,$(call GetEntry,$(1),$(easymake_entry_list),"the ENTRY($(1)) is neither defined in the entry_list nor detected by easymake (e.g. $(1).cpp). detected values are $(easymake_entry_list)"))
-easymake_get_cppsources = $(call FilterSourcesToLink , $(CPPSOURCES) , $(call easymake_get_entry,$(1)) , $(easymake_entry_list))
-easymake_get_csources   = $(call FilterSourcesToLink , $(CSOURCES)   , $(call easymake_get_entry,$(1)) , $(easymake_entry_list))
-easymake_get_objects    = $(call GetCorrendingObjects,$(call easymake_get_cppsources,$(1)),$(BUILD_ROOT),$(CPPEXT)) $(call GetCorrendingObjects,$(call easymake_get_csources,$(1)),$(BUILD_ROOT),$(CEXT))
+easymake_get_cppsources = $(call FilterSourcesToLink , $(CXXSRC) , $(call easymake_get_entry,$(1)) , $(easymake_entry_list))
+easymake_get_csources   = $(call FilterSourcesToLink , $(CSRC)   , $(call easymake_get_entry,$(1)) , $(easymake_entry_list))
+easymake_get_objects    = $(call GetCorrendingObjects,$(call easymake_get_cppsources,$(1)),$(BUILD_ROOT),$(CXXEXT)) $(call GetCorrendingObjects,$(call easymake_get_csources,$(1)),$(BUILD_ROOT),$(CEXT))
 easymake_check_so_target = $(if $(filter %.so,$(1)),NONE,$(1))
 
 easymake_cmd_echo_and_exec = echo $(1) && $(1)
@@ -317,7 +295,7 @@ $(BUILD_ROOT)/%.so: $(easymake_all_cppobjects) $(easymake_all_cobjects)
 $(BUILD_ROOT)/%.a: $(easymake_all_cppobjects) $(easymake_all_cobjects)
 	@echo
 #	@echo -e "$@: $(call easymake_get_objects,NONE)\neasymake_nontest_built_entry_list+=$(call easymake_get_entry,NONE)" > $(easymake_f_targets_dep_prefix)_$(notdir $@).d
-	$(AR) cr $@ $(call easymake_get_objects,NONE) $(AR_FLAGS)
+	$(AR) $(ARFLAGS) $@ $(call easymake_get_objects,NONE)
 
 test: $(easymake_all_cppobjects) $(easymake_all_cobjects)
 	@$(foreach e, $(easymake_test_entry_list), $(call easymake_cmd_echo_and_exec, $(easymake_linker) -o $(call easymake_get_target,$(e)) $(call easymake_get_objects,$(e)) $(LDFLAGS))  && ) true
