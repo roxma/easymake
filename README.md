@@ -39,7 +39,7 @@ Files with `*_test.cpp` or `*_test.c` pattern will be used for testing (inspired
 
 ### Options
 
-Easymake is trying to follow the Makefile Conventions [(1)](https://www.gnu.org/prep/standards/html_node/Makefile-Conventions.html) [(2)](https://www.gnu.org/prep/standards/html_node/Makefile-Conventions.html). The following options are supported.
+Easymake is trying to follow the Makefile Conventions [(1)](https://www.gnu.org/software/make/manual/html_node/Implicit-Variables.html#Implicit-Variables) [(2)](https://www.gnu.org/prep/standards/html_node/Makefile-Conventions.html). The following options are supported.
 
 - `CFLAGS` Extra flags to give to the C compiler.
 - `CXXFLAGS` Extra flags to give to the C++ compiler.
