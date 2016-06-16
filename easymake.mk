@@ -21,7 +21,7 @@ BUILD_ROOT?=bin
 CXXEXT?=cpp
 CEXT?=c
 
-CC?=gcc
+CC?=cc
 CXX?=g++
 AR?=ar
 
