@@ -1,10 +1,10 @@
-# Easymake - Why Bother To Write Makefilessssss? #
+# Easymake
 
 
-  
+
 ## Introduction ##
 
-Easymake is a generic makefile for C/C++ on linux system. For simple C/C++ applications, you don&rsquo;t even need to write a single line of makefile code to build your target with easymake.
+Easymake is a handy makefile for C/C++ applications on Linux system. For simple applications, you don&rsquo;t even need to write a single line of makefile code to build your target with easymake.
 
 Features description:
 
