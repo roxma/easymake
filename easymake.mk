@@ -5,7 +5,6 @@
 #                long tedious makefile.
 # github       : https://github.com/roxma/easymake
 
-# Execute "make show" for debug information.
 
 # basic settings
 
@@ -25,11 +24,13 @@ CC?=cc
 CXX?=g++
 AR?=ar
 
+GEN_DEP_FLAG ?= -MP -MMD
 # ENTRY_LIST
 # VPATH=
 
 ################################################################
-# internal implementations
+# INTERNAL IMPLEMENTATIONS
+# DO NOT MODIFY WITHOUT KNOWING WHAT YOU ARE DOING
 
 #  clears out the suffix list with implicit rules
 .SUFFIXES:
@@ -49,11 +50,6 @@ BeginWith=$(if $(2),$(if $(patsubst $(1)%,,$(2)),,$(1)),)
 # $(call ReadSettings, $(file_name))
 ReadSettings=$(shell if [ -f $(1) ]; then grep -v "^\#" $(1); fi;)
 
-##
-# A function to read the n-th line of a text file.
-# $(call ReadLine, fine_name, line_num)
-ReadLine=$(shell if [ -f $(1) ]; then sed -n $(2)p $(1); fi;)
-
 ## 
 # @param 1 The word to find.
 # @param 2 list of words
@@ -65,7 +61,6 @@ WordExist=$(strip $(foreach word,$(2),$(if $(patsubst $(strip $(1)),,$(strip $(w
 # @param 3 error to show if no matched. If empty, this parameter has no
 #   effect.
 NonEmptyOrError     = $(if $(1),$(1),$(error $(2)))
-SelectFirstMatch    = $(call NonEmptyOrError,$(word 1,$(foreach word,$(2),$(if $(findstring $(1),$(word)),$(word),) )),$(3))
 SelectFileNameMatch = $(call NonEmptyOrError,$(word 1,$(foreach f,$(2),$(if $(filter $(1),$(notdir $(basename $(f)))),$(f),) )),$(3))
 
 ##
@@ -83,10 +78,6 @@ IfFileExist=$(if $(wildcard $(1)),$(2),$(3))
 SearchFilePath=$(foreach file,$(1),$(if $(call FileExist,$(file)),$(file),$(foreach vpathDir,$(VPATH),$(if $(call FileExist,$(vpathDir)/$(file)),$(vpathDir)/$(file)))))
 
 ##
-# @param 1 Entry name
-GetEntryPath4Timestamp=$(if $(call SearchFilePath,$(1)),$(call SearchFilePath,$(1)),$(shell if [ ! -f $(BUILD_ROOT)/easymake_entry_timestamp_$(1) ]; then  touch $(BUILD_ROOT)/easymake_entry_timestamp_$(1); fi)$(BUILD_ROOT)/easymake_entry_timestamp_$(1))
-
-##
 # If the user specifies $(ENTRY), and the $(ENTRY) is not a file, update its 
 # timestamp, so that this entry will be picked next time.
 ifneq ($(ENTRY),)
@@ -95,12 +86,6 @@ ifeq ($(strip $(call SearchFilePath,$(ENTRY))),)
     $(shell touch $(BUILD_ROOT)/easymake_entry_timestamp_$(ENTRY))
 endif
 endif
-
-##
-# Get the file with the newest timestamp
-# @param 1 A list of files
-# @return The index of files in the list
-GetNewestFileIndex=$(shell newestIndex=1 && index=1 && newest=$(call GetEntryPath4Timestamp,$(word 1,$(1))) && for file in $(foreach file,$(1),$(call GetEntryPath4Timestamp,$(file)) ) ; do if [ $$file -nt $$newest ] ; then newest=$$file; newestIndex=$$index; fi; let index+=1; done && echo $$newestIndex)
 
 ##
 # A function to decide the actual entry file.
@@ -126,17 +111,6 @@ GetCorrendingObjects=$(foreach _src,$(1),$(2)/$(_src:.$(3)=.o))
 ##
 # Recursive wildcard
 RWildcard=$(foreach d,$(wildcard $1*),$(call RWildcard,$d/,$2) $(filter $(subst *,%,$2),$d))
-
-##
-# @param 1 file name
-# @param 2 key
-ConfReadValue=$(shell cat $1 | awk  '{if ($$1=="$2") print $$2; }')
-
-##
-# @param 1 file name
-# @param 2 key
-# @param 3 value
-CmdConfWriteValue= touch $1 ; fileContents="`cat $1`" ; echo "$$fileContents" |  awk '{if ((NF==2)&&($$1!="$2")) print $$1,$$2 ; } END{print "$2","$3" ;}' > $1
 
 
 ################################################################
@@ -216,35 +190,18 @@ easymake_build_goals:=$(filter-out $(BUILD_ROOT)/%.o $(BUILD_ROOT)/%.d $(BUILD_R
 ##
 # Pattern rule Descriptions:
 # 1. Prepare the directories, where the object file is gonna be created.
-# 2. Compile the source code to object file.
-# 3. Generate the .d dependency file, which specify what files this object 
-#    files depends on. This is useful in the next make.
-# 4. Prepare $(easymake_f_detected_entries), which is not empty.
-# 5. 
-# 6. Delete the name of the source file this target corresponds to, if it is 
-#    listed in file $(easymake_f_detected_entries). Note that the grep command 
-#    returns non-zero code if its output is empty, thus we have to make sure 
-#    that the file $(easymake_f_detected_entries) is not empty.
-# 7. If there is a main function defined in this object, add this file into the 
-#    list defined in the file $(easymake_f_detected_entries).
+# 2. Compile the source code to object file, and generate .d file.
+# 3. If there is a main function defined in this object, register the source file as entry.
 #
 $(BUILD_ROOT)/%.o: %.$(CXXEXT)
 	@mkdir -p $(dir $@)
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c -o $@  $(word 1,$^) 
-	@$(CXX) -MM -MP -MF"$(@:.o=.d)" -MT"$@" $(CPPFLAGS) $(CXXFLAGS) $(word 1,$^) 
-	@if [ ! -f $(easymake_f_detected_entries) ]; then echo " " > $(easymake_f_detected_entries); fi;
-	@grep -v "^$(patsubst $(BUILD_ROOT)/%.o,%.$(CXXEXT),$@)$$" $(easymake_f_detected_entries) > $(BUILD_ROOT)/easymake_entries_tmp.d 
-	@cp $(BUILD_ROOT)/easymake_entries_tmp.d $(easymake_f_detected_entries)
-	@if [ $$(nm -g -C --format="posix" $@ | grep -c "^main T") -eq 1 ]; then echo "$(patsubst $(BUILD_ROOT)/%.o,%.$(CXXEXT),$@)" >> $(easymake_f_detected_entries) && echo "# main detected"; fi;
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(GEN_DEP_FLAG) -c -o $@  $(word 1,$^) 
+	@if [ $$(nm -g -C --format="posix" $@ | grep -c "^main T") -eq 1 ]; then echo "$(patsubst $(BUILD_ROOT)/%.o,%.$(CXXEXT),$@)" >> $(easymake_f_detected_entries) && echo "# main detected"; sort -u $(easymake_f_detected_entries) -o $(easymake_f_detected_entries); fi;
 
 $(BUILD_ROOT)/%.o: %.$(CEXT)
 	@mkdir -p $(dir $@)
-	$(CC) $(CPPFLAGS) $(CFLAGS)  -c -o $@ $(word 1,$^)
-	@$(CC) -MM -MP -MF"$(@:.o=.d)" -MT"$@" $(CPPFLAGS) $(CFLAGS) $(word 1,$^) 
-	@if [ ! -f $(easymake_f_detected_entries) ]; then echo " " > $(easymake_f_detected_entries); fi;
-	@grep -v "^$(patsubst $(BUILD_ROOT)/%.o,%.$(CEXT),$@)$$" $(easymake_f_detected_entries) > $(BUILD_ROOT)/easymake_entries_tmp.d 
-	@cp $(BUILD_ROOT)/easymake_entries_tmp.d $(easymake_f_detected_entries)
-	@if [ $$(nm -g -C --format="posix" $@ | grep -c "^main T") -eq 1 ]; then echo "$(patsubst $(BUILD_ROOT)/%.o,%.$(CEXT),$@)" >> $(easymake_f_detected_entries) && echo "    # main detected"; fi;
+	$(CC) $(CPPFLAGS) $(CFLAGS) $(GEN_DEP_FLAG)  -c -o $@ $(word 1,$^)
+	@if [ $$(nm -g -C --format="posix" $@ | grep -c "^main T") -eq 1 ]; then echo "$(patsubst $(BUILD_ROOT)/%.o,%.$(CEXT),$@)" >> $(easymake_f_detected_entries) && echo "# main detected"; sort -u $(easymake_f_detected_entries) -o $(easymake_f_detected_entries); fi;
 
 
 ##
