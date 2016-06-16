@@ -49,9 +49,9 @@ Easymake is trying to follow the Makefile Conventions [(1)](https://www.gnu.org/
 - `LDLIBS` Library flags or names given to compilers when they are supposed to invoke the linker
 - `ARFLAGS` Flags to give the archive-maintaining program; default `cr`
 
-### Suggested Style
+### Recommended Style
 
-In the GIFs, I simply copy `easymake.mk` into my souce code directory as a makefile. However. for code simplicity, I suggest you use easymake as the following way:
+In the GIFs, I simply copy `easymake.mk` into my souce code directory as a makefile. However. for code simplicity, I recommend the folling style:
 
 ```
 CXXFLAGS=-O2
