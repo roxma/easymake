@@ -18,15 +18,13 @@ Features description:
 - Handles more than one entry point in the project.
 - Support both [static library(libfoo.a)](samples/staticLib/Makefile) and
   [shared library(libfoo.so)](samples/so/Makefile) building.
+- Simple [third party dependencis management](samples/dep).
 
-***NOTICE***: Easymake is designed to be easy to use on some simple
-applications, not as a highly flexible or extensible template. If you want
-more customization, you might need to look for [a simple one](https://gist.github.com/samuelsmal/e43f2001cfc81fee18b6)
-for start.
 
-If your project is getting a bit more complicated with third-party library
-dependencis, refer to the [dep example](samples/dep) which shows how I achive
-that.
+***NOTICE***: Easymake is designed to be easy to use on simple applications,
+not as a highly flexible or extensible template. If you want more
+customization, you might need to look for [a small and simple
+example](https://gist.github.com/samuelsmal/e43f2001cfc81fee18b6) for start.
 
 ## Getting Started ##
 
