@@ -49,17 +49,23 @@ _DEP_PATH:= $(abspath $(lastword $(MAKEFILE_LIST)))
 
 DEP_PREFIX  ?= dep
 DEP_BUILD   ?= $(DEP_PREFIX)/build/
-DEP_INCLUDE ?= ./make/
 
-DEP_MAKE= 											\
-		mkdir -p "$(DEP_BUILD)/$(1)" "$(DEP_PREFIX)" && 			\
-		$(MAKE) -C "$(DEP_BUILD)/$(1)" 				\
-		 	"DEP_MODULE=$(1)" 						\
+_DEP_GET_NAME ?= $(if $2,$2,$(notdir $(basename $(basename $1))))
+
+DEP_MAKE= 			\
+		mkdir -p 	\
+			"$(DEP_BUILD)/$(call _DEP_GET_NAME,$1,$2)" 		\
+			"$(DEP_PREFIX)" && 								\
+		$(MAKE) 											\
+			-C "$(DEP_BUILD)/$(call _DEP_GET_NAME,$1,$2)" 	\
+			-I $(abspath .)							\
+			-I $(dir $(abspath $1))					\
+			"DEP_NAME=$(call _DEP_GET_NAME,$1,$2)"	\
+		 	"DEP_MODULE=$1" 						\
 			"DEP_BUILD=$(abspath $(DEP_BUILD))"		\
 			"DEP_PREFIX=$(abspath $(DEP_PREFIX))"	\
-			"DEP_INCLUDE=$(abspath $(DEP_INCLUDE))"	\
 			-f "$(_DEP_PATH)" && 					\
-		cd "$(DEP_PREFIX)/stow" && stow $(1)
+		cd "$(DEP_PREFIX)/stow" && stow $(call _DEP_GET_NAME,$1,$2)
 
 # DEP_CLEAN=rm -rf $(DEP_BUILD)/$(1); if [ -d $(DEP_PREFIX)/stow/$(1) ]; then cd $(DEP_PREFIX)/stow && stow --delete $(1) && rm -rf $(1) ; fi
 
@@ -86,8 +92,10 @@ DEP_DOWNLOAD= @echo "-- downloading $1 to $2";		\
 
 # TODO: implement DEP_GIT with caching
 
+# TODO: support loading of pkgconfig for CXXFLAGS, CFLAGS ?
+
 ifneq ($(DEP_MODULE),)
-  PREFIX=$(abspath $(DEP_PREFIX)/stow/$(DEP_MODULE))
-  include $(abspath $(DEP_INCLUDE)/module.$(DEP_MODULE).mk)
+  PREFIX=$(abspath $(DEP_PREFIX)/stow/$(DEP_NAME))
+  include $(DEP_MODULE)
 endif
 

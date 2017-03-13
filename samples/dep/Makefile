@@ -4,7 +4,7 @@ DEP_PREFIX = dep
 include ../../dep.mk
 
 all:
-	$(call DEP_MAKE,fmt)
+	$(call DEP_MAKE,make/fmt.module.mk)
 
 	cd src && $(MAKE)
 
