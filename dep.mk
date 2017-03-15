@@ -82,12 +82,30 @@ DEP_DOWNLOAD= @echo "-- downloading $1 to $2";		\
 	echo "$$sum $2" > "$2.$$chk"; 					\
 	if ! $$chk -c "$2.$$chk" 1>/dev/null 2>&1; then	\
 		echo wget -O $2 "$1";$$chk -c "$2.$$chk";	\
-		wget -O $2 "$1";							\
-		mkdir -p $$cdir;							\
+		wget -O $2 "$1" &&							\
+		mkdir -p $$cdir &&							\
 		$$chk -c "$2.$$chk" && cp $2 $$cfile;		\
 	else											\
 		echo "   [$2] already downloaded";			\
 	fi
+
+# git repo, clone_to, commit sha
+DEP_GIT=@				\
+		cdir=~/.cache/easymake;				\
+		cfile="$$cdir/$(notdir $2)-$3";		\
+		echo "-- cloning $1 [$3] to $2"	&&	\
+		if [ ! -d "$$cfile" ]; then			\
+			rm -rf "$2" &&					\
+			git clone "$1" "$2" &&			\
+			cd "$2" &&						\
+			echo "-- git" reset --hard "$3" &&	\
+			git reset --hard "$3" &&		\
+			cp -r . "$$cfile";				\
+		else								\
+			echo "   [$1] cached as $$cfile";	\
+			cp -r $$cfile $2;					\
+		fi
+
 
 # TODO: implement DEP_GIT with caching
 
