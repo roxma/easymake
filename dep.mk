@@ -74,7 +74,7 @@ DEP_DOWNLOAD= @echo "-- downloading $1 to $2";		\
 	chk=$(firstword $(subst =, ,$3)); 				\
 	sum=$(lastword $(subst =, ,$3)); 				\
 	cdir=~/.cache/easymake;							\
-	cfile="$$cdir/$$sum.$$chk";						\
+	cfile="$$cdir/$(notdir $2)-$$sum-$$chk";	\
 	if [ -f "$$cfile" ]; then						\
 		echo "   [$2] cached as $$cfile";			\
 		cp $$cfile $2;								\
@@ -84,8 +84,7 @@ DEP_DOWNLOAD= @echo "-- downloading $1 to $2";		\
 		echo wget -O $2 "$1";$$chk -c "$2.$$chk";	\
 		wget -O $2 "$1";							\
 		mkdir -p $$cdir;							\
-		cp $2 ~/.cache/easymake/"$$sum.$$chk";		\
-		$$chk -c "$2.$$chk";						\
+		$$chk -c "$2.$$chk" && cp $2 $$cfile;		\
 	else											\
 		echo "   [$2] already downloaded";			\
 	fi
