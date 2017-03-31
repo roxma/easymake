@@ -64,6 +64,9 @@ DEP_MAKE= 			\
 		 	"DEP_MODULE=$1" 						\
 			"DEP_BUILD=$(abspath $(DEP_BUILD))"		\
 			"DEP_PREFIX=$(abspath $(DEP_PREFIX))"	\
+			"DEP_CC=$(CC)"							\
+			"DEP_CXX=$(CXX)"						\
+			"DEP_AR=$(AR)"							\
 			-f "$(_DEP_PATH)" && 					\
 		cd "$(DEP_PREFIX)/stow" && stow $(call _DEP_GET_NAME,$1,$2)
 
