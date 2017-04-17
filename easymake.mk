@@ -49,33 +49,14 @@ IS_TEST?=$(filter %_test.$(CEXT) %_test.$(CXXEXT),$(1))
 #  clears out the suffix list with implicit rules
 .SUFFIXES:
 
-##
-# @param 1 A sub-word.
-# @param 2 list of words.
-# @param 3 error to show if no matched. If empty, this parameter has no
-#   effect.
-NonEmptyOrError     = $(if $(1),$(1),$(error $(2)))
-SelectFileNameMatch = $(call NonEmptyOrError,$(word 1,$(foreach f,$(2),$(if $(filter $(1),$(notdir $(basename $(f)))),$(f),) )),$(3))
+################################################################
 
 ##
-# $(call IfFileExist,filename,then,else)
-IfFileExist=$(if $(wildcard $(1)),$(2),$(3))
+# $(call Em_src2obj,$(CSRC) $(CXXSRC),$(BUILD_ROOT))
+Em_src2obj=$(foreach _src,$(1),$(2)/$(basename $(_src)).o)
 
-##
-# $(call GetEntry,entry_name,entry_list,error_message)
-GetEntry=$(if $(filter $(1),$(2)),$(1),$(call SelectFileNameMatch,$(1),$(2),$(3)))
-
-##
-# $(call GetCorrendingObjects,$(CSRC) $(CXXSRC),$(BUILD_ROOT))
-GetCorrendingObjects=$(foreach _src,$(1),$(2)/$(basename $(_src)).o)
-
-##
 # Recursive wildcard
 RWildcard=$(foreach d,$(wildcard $1*),$(call RWildcard,$d/,$2) $(filter $(subst *,%,$2),$d))
-
-CmdEchoAndExec = echo $(1) && $(1)
-
-################################################################
 
 # NOTICE: "./" in BUILD_ROOT may cause entry detecting problem.
 ifneq (,$(filter ./%,$(BUILD_ROOT)))
@@ -112,18 +93,15 @@ ifneq ($(strip $(CXXSRC)),)
 endif
 em_linker?=$(CC)
 
-em_all_objects:=$(call GetCorrendingObjects,$(CSRC) $(CXXSRC),$(BUILD_ROOT))
+em_all_objects:=$(call Em_src2obj,$(CSRC) $(CXXSRC),$(BUILD_ROOT))
 
 
 # A file that contains a list of entries detected by easymake.
-em_f_entries:=$(BUILD_ROOT)/em_detected_entries
-
-em_f_targets_dep_prefix:=$(BUILD_ROOT)/em_targets_dep
+em_f_entries:=$(BUILD_ROOT)/em_entries
 
 # By convention, the default target should be "all"
 all:
 
-##
 # If there is a main function defined in this object, register the source file
 # as entry.
 $(BUILD_ROOT)/%.o: %.$(CXXEXT)
@@ -142,73 +120,52 @@ $(BUILD_ROOT)/%.o: %.$(CEXT)
 		sort -u $(em_f_entries) -o $(em_f_entries); 							\
 		fi;
 
-
-##
 # include all generated dependency files
-#
 ifneq ($(strip $(em_all_objects)),)
     sinclude $(em_all_objects:.o=.d)
 endif
-sinclude $(wildcard $(em_f_targets_dep_prefix)_*)
-
 
 # Read detected entries from file and filter out the non-existed source
 em_entry_list = $(ENTRY_LIST) $(filter $(CXXSRC) $(CSRC),$(shell cat $(em_f_entries) 2>/dev/null))
 
-em_test_list  = $(foreach e,$(em_entry_list),$(if $(call IS_TEST,$(e)),$(e),))
-em_build_list = $(filter-out $(em_nontest_built_entry_list) $(em_test_list),$(em_entry_list))
+Em_entry   = $(if $(filter none NONE,$(1)),,$(1))
+Em_objects = $(call Em_src2obj,$(filter-out $(em_entry_list),$(CSRC) $(CXXSRC)) $(call Em_entry,$(1)),$(BUILD_ROOT))
+Em_src2target = $(foreach src,$1,$(BUILD_ROOT)/$(notdir $(basename $(src))))
 
-em_entry   = $(if $(filter none NONE,$(1)),,$(call GetEntry,$(1),$(em_entry_list),"the ENTRY($(1)) is neither defined in the entry_list nor detected by easymake (e.g. $(1).cpp). detected values are $(em_entry_list)"))
-em_objects = $(call GetCorrendingObjects,$(filter-out $(em_entry_list),$(CSRC) $(CXXSRC)) $(call em_entry,$(1)),$(BUILD_ROOT))
 
-# Get target name from entry name
-em_target = $(BUILD_ROOT)/$(notdir $(basename $(1)))
-em_entry_name_from_target = $(if $(filter %.a %.so,$(notdir $@)),NONE,$(notdir $@))
-em_nontest_built_exe = $(foreach e,$(em_nontest_built_entry_list),$(call IfFileExist,$(e),$(call em_target,$(e)),))
-
-# Automatically find and compiles all c/cpp files, build the corresponding non test programs if any main function exists
-all: $(em_all_objects) $(em_nontest_built_exe)
-	@$(foreach e,$(em_build_list),  echo -e "$(call em_target,$(e)): $(call em_objects,$(e))\nem_built_target_list+=$(call em_target,$(e))\nem_nontest_built_entry_list+=$(e)" > $(em_f_targets_dep_prefix)_$(notdir $(call em_target,$(e))).d ; ) true
-	@$(foreach e,$(em_build_list), $(call CmdEchoAndExec, $(em_linker) -o $(call em_target,$(e)) $(call em_objects,$(e)) $(LDFLAGS)) && ) true
-
-# This recipe to handle command "make bin/foo"
-# Explicit exec goals does not know their dependencies
-$(filter-out  $(em_nontest_built_exe) %.so %.a %.o %.d,$(filter $(BUILD_ROOT)/%,$(MAKECMDGOALS))): $(em_all_objects)
-	@echo 
-	@echo -e "$@: $(call em_objects,$(em_entry_name_from_target))\nem_built_target_list+=$@\nem_nontest_built_entry_list+=$(call em_entry,$(em_entry_name_from_target))" > $(em_f_targets_dep_prefix)_$(notdir $@).d
-	$(em_linker) $(call em_objects,$(em_entry_name_from_target)) $(LDFLAGS) -o $@ $(LOADLIBES) $(LDLIBS)
-
-# targets built before have already know their own dependencies
-$(em_nontest_built_exe):
-	@echo 
-	@echo -e "$@: $(call em_objects,$(em_entry_name_from_target))\nem_built_target_list+=$@\nem_nontest_built_entry_list+=$(call em_entry,$(em_entry_name_from_target))" > $(em_f_targets_dep_prefix)_$(notdir $@).d
-	$(em_linker) $(call em_objects,$(em_entry_name_from_target)) $(LDFLAGS) -o $@ $(LOADLIBES) $(LDLIBS)
+$(BUILD_ROOT)/targets.mk: $(em_all_objects)
+	@rm -f $@
+	@echo "generating $@"
+	@$(foreach f,$(em_entry_list),									\
+		echo 'all: $(call Em_src2target,$f)' >> $@;					\
+		echo '$(call Em_src2target,$f): $(call Em_objects,$f)' >> $@;	\
+		echo '	$(em_linker) $$^ $(LDFLAGS) -o $$@ $(LOADLIBES) $(LDLIBS)'	>> $@;	\
+	)
 
 # This recipe to handle rule "all: foo.so" or command "make foo.so"
-$(BUILD_ROOT)/lib%.so lib%.so: $(call  em_objects,NONE)
+$(BUILD_ROOT)/lib%.so lib%.so: $(call  Em_objects,NONE)
 	@echo
-	@echo -e "$@: $(call em_objects,NONE)\nem_built_target_list+=$@" > $(em_f_targets_dep_prefix)_$(notdir $@).d
-	$(em_linker) $(call  em_objects,NONE) $(LDFLAGS) -o $@ $(LOADLIBES) $(LDLIBS)
-
+	$(em_linker) $(call  Em_objects,NONE) $(LDFLAGS) -o $@ $(LOADLIBES) $(LDLIBS)
 
 # This recipe to handle rule "all: foo.a" or command "make foo.a"
-$(BUILD_ROOT)/lib%.a lib%.a: $(call  em_objects,NONE)
-	@echo $(filter-out $(em_entry_list),$(em_all_objects))
-	@echo -e "$@: $(call em_objects,NONE)\nem_built_target_list+=$@" > $(em_f_targets_dep_prefix)_$(notdir $@).d
-	$(AR) $(ARFLAGS) $@ $(call  em_objects,NONE)
+$(BUILD_ROOT)/lib%.a lib%.a: $(call  Em_objects,NONE)
+	$(AR) $(ARFLAGS) $@ $(call  Em_objects,NONE)
+
+all $(sort $(call Em_src2target,$(CSRC) $(CXXSRC))): $(em_all_objects) $(BUILD_ROOT)/targets.mk
+	$(MAKE) -f  $(BUILD_ROOT)/targets.mk $(filter-out  %.so %.a %.o %.d,$(filter $(BUILD_ROOT)/%,$(MAKECMDGOALS)))
+
 
 # "check" is the standard target from standard makefile conventions
 check: test
-test: SHELL := /bin/bash
-test: $(em_all_objects)
-	@$(foreach e, $(em_test_list),  echo -e "$(call em_target,$(e)): $(call em_objects,$(e))\nem_built_target_list+=$(call em_target,$(e))\nem_test_built_entry_list+=$(e)" > $(em_f_targets_dep_prefix)_$(notdir $(call em_target,$(e))).d ; ) true
-	@$(foreach e, $(em_test_list), $(call CmdEchoAndExec, $(em_linker) -o $(call em_target,$(e)) $(call em_objects,$(e)) $(LDFLAGS))  && ) true
-	@echo 
-	@cnt=0; failed=0; $(foreach e,$(em_test_list), echo '# run [$(call em_target,$(e))]' && { $(call em_target,$(e)) 2>&1 | sed "s/^/  # /g" 2>/dev/null; ret=$${PIPESTATUS[0]}; if [[ $$ret != 0 ]]; then echo "# test [$(call em_target,$(e))] failed [$$ret]"; failed=$$((failed+1));  fi; cnt=$$((cnt+1)); true; } 2>/dev/null && ) echo "# $$cnt test complete. $$failed failed test."
+test: all
+	@echo "--- running tests ..."
+	@set -e; $(foreach f,$(em_entry_list),	$(if $(call IS_TEST,$f),	\
+		$(call Em_src2target,$f);										\
+	,))
+	@echo "--- test complete."
 
 clean: em_clean
-.PHONY: em_clean
+.PHONY: em_clean test check
 em_clean:
-	rm -f $(em_built_target_list)
 	if [ -d $(BUILD_ROOT) ]; then find $(BUILD_ROOT) '(' -name "*.o" -o -name "*.d" -o -name "*.a" -o -name "*.so" -o -name "em_*" ')' -exec rm -f '{}' ';' ; fi
 
