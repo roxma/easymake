@@ -49,6 +49,8 @@ _DEP_PATH:= $(abspath $(lastword $(MAKEFILE_LIST)))
 
 DEP_PREFIX  ?= dep
 DEP_BUILD   ?= $(DEP_PREFIX)/build/
+STOW ?= stow
+WGET ?= wget
 
 _DEP_GET_NAME ?= $(if $2,$2,$(notdir $(basename $(basename $1))))
 
@@ -67,8 +69,10 @@ DEP_MAKE= 			\
 			"DEP_CC=$(CC)"							\
 			"DEP_CXX=$(CXX)"						\
 			"DEP_AR=$(AR)"							\
+			"STOW=$(STOW)"							\
+			"WGET=$(WGET)"							\
 			-f "$(_DEP_PATH)" && 					\
-		cd "$(DEP_PREFIX)/stow" && stow $(call _DEP_GET_NAME,$1,$2)
+		cd "$(DEP_PREFIX)/stow" && $(STOW) $(call _DEP_GET_NAME,$1,$2)
 
 # DEP_CLEAN=rm -rf $(DEP_BUILD)/$(1); if [ -d $(DEP_PREFIX)/stow/$(1) ]; then cd $(DEP_PREFIX)/stow && stow --delete $(1) && rm -rf $(1) ; fi
 
@@ -77,15 +81,15 @@ DEP_DOWNLOAD= @echo "-- downloading $1 to $2";		\
 	chk=$(firstword $(subst =, ,$3)); 				\
 	sum=$(lastword $(subst =, ,$3)); 				\
 	cdir=~/.cache/easymake;							\
-	cfile="$$cdir/$(notdir $2)-$$sum-$$chk";	\
+	cfile="$$cdir/$(notdir $2)-$$sum-$$chk";		\
 	if [ -f "$$cfile" ]; then						\
 		echo "   [$2] cached as $$cfile";			\
 		cp $$cfile $2;								\
 	fi;												\
 	echo "$$sum $2" > "$2.$$chk"; 					\
 	if ! $$chk -c "$2.$$chk" 1>/dev/null 2>&1; then	\
-		echo wget -O $2 "$1";$$chk -c "$2.$$chk";	\
-		wget -O $2 "$1" &&							\
+		echo $(WGET) -O $2 "$1";$$chk -c "$2.$$chk";	\
+		$(WGET) -O $2 "$1" &&							\
 		mkdir -p $$cdir &&							\
 		$$chk -c "$2.$$chk" && cp $2 $$cfile;		\
 	else											\
@@ -109,8 +113,6 @@ DEP_GIT=@				\
 			cp -r $$cfile $2;					\
 		fi
 
-
-# TODO: implement DEP_GIT with caching
 
 # TODO: support loading of pkgconfig for CXXFLAGS, CFLAGS ?
 
