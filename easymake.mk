@@ -116,7 +116,7 @@ em_all_objects:=$(call GetCorrendingObjects,$(CSRC) $(CXXSRC),$(BUILD_ROOT))
 
 
 # A file that contains a list of entries detected by easymake.
-em_f_detected_entries:=$(BUILD_ROOT)/em_detected_entries
+em_f_entries:=$(BUILD_ROOT)/em_detected_entries
 
 em_f_targets_dep_prefix:=$(BUILD_ROOT)/em_targets_dep
 
@@ -124,20 +124,23 @@ em_f_targets_dep_prefix:=$(BUILD_ROOT)/em_targets_dep
 all:
 
 ##
-# Pattern rule Descriptions:
-# 1. Prepare the directories, where the object file is gonna be created.
-# 2. Compile the source code to object file, and generate .d file.
-# 3. If there is a main function defined in this object, register the source file as entry.
-#
+# If there is a main function defined in this object, register the source file
+# as entry.
 $(BUILD_ROOT)/%.o: %.$(CXXEXT)
 	@mkdir -p $(dir $@)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(GEN_DEP_FLAG) -c -o $@  $<
-	@if [ $$(nm -g --format="posix" $@ | grep -c "^main T") -eq 1 ]; then echo "$(patsubst $(BUILD_ROOT)/%.o,%.$(CXXEXT),$@)" >> $(em_f_detected_entries); sort -u $(em_f_detected_entries) -o $(em_f_detected_entries); fi;
+	@if [ $$(nm -g --format="posix" $@ | grep -c "^main T") -eq 1 ]; then 		\
+		echo "$(patsubst $(BUILD_ROOT)/%.o,%.$(CXXEXT),$@)" >> $(em_f_entries);	\
+		sort -u $(em_f_entries) -o $(em_f_entries); 							\
+	fi;
 
 $(BUILD_ROOT)/%.o: %.$(CEXT)
 	@mkdir -p $(dir $@)
 	$(CC) $(CPPFLAGS) $(CFLAGS) $(GEN_DEP_FLAG)  -c -o $@ $<
-	@if [ $$(nm -g --format="posix" $@ | grep -c "^main T") -eq 1 ]; then echo "$(patsubst $(BUILD_ROOT)/%.o,%.$(CEXT),$@)" >> $(em_f_detected_entries); sort -u $(em_f_detected_entries) -o $(em_f_detected_entries); fi;
+	@if [ $$(nm -g --format="posix" $@ | grep -c "^main T") -eq 1 ]; then		\
+		echo "$(patsubst $(BUILD_ROOT)/%.o,%.$(CEXT),$@)" >> $(em_f_entries);	\
+		sort -u $(em_f_entries) -o $(em_f_entries); 							\
+		fi;
 
 
 ##
@@ -150,7 +153,7 @@ sinclude $(wildcard $(em_f_targets_dep_prefix)_*)
 
 
 # Read detected entries from file and filter out the non-existed source
-em_entry_list = $(ENTRY_LIST) $(filter $(CXXSRC) $(CSRC),$(shell cat $(em_f_detected_entries) 2>/dev/null))
+em_entry_list = $(ENTRY_LIST) $(filter $(CXXSRC) $(CSRC),$(shell cat $(em_f_entries) 2>/dev/null))
 
 em_test_list  = $(foreach e,$(em_entry_list),$(if $(call IS_TEST,$(e)),$(e),))
 em_build_list = $(filter-out $(em_nontest_built_entry_list) $(em_test_list),$(em_entry_list))
