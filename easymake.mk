@@ -132,6 +132,7 @@ Em_entry   = $(if $(filter none NONE,$(1)),,$(1))
 Em_objects = $(call Em_src2obj,$(filter-out $(em_entry_list),$(CSRC) $(CXXSRC)) $(call Em_entry,$(1)),$(BUILD_ROOT))
 Em_src2target = $(foreach src,$1,$(BUILD_ROOT)/$(notdir $(basename $(src))))
 
+$(em_all_objects): $(filter-out $(BUILD_ROOT)/%,$(MAKEFILE_LIST))
 
 $(BUILD_ROOT)/em_targets.mk: $(em_all_objects)
 	@rm -f $@
