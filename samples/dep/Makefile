@@ -1,7 +1,7 @@
 
 DEP_PREFIX = dep
 
-include ../../dep.mk
+include ../../easymake_dep.mk
 
 all:
 	$(call DEP_MAKE,./make/fmt.module.mk)
