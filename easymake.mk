@@ -56,7 +56,7 @@ IS_TEST?=$(filter %_test.$(CEXT) %_test.$(CXXEXT),$(1))
 Em_src2obj=$(foreach _src,$(1),$(2)/$(basename $(_src)).o)
 
 # Recursive wildcard
-RWildcard=$(foreach d,$(wildcard $1*),$(call RWildcard,$d/,$2) $(filter $(subst *,%,$2),$d))
+Em_rwildcard=$(foreach d,$(wildcard $1*),$(call Em_rwildcard,$d/,$2) $(filter $(subst *,%,$2),$d))
 
 # NOTICE: "./" in BUILD_ROOT may cause entry detecting problem.
 ifneq (,$(filter ./%,$(BUILD_ROOT)))
@@ -66,7 +66,7 @@ endif
 # if CXXSRC are not specified, automatically scan all .$(CXXEXT) files in the 
 # current directories.
 ifeq ($(strip $(CXXSRC)),)
-    CXXSRC:=$(call RWildcard,,*.$(CXXEXT)) $(foreach dir,$(VPATH),$(foreach src,$(call RWildcard,$(dir),*.$(CXXEXT)),$(src:$(dir)/%=%)))
+    CXXSRC:=$(call Em_rwildcard,,*.$(CXXEXT)) $(foreach dir,$(VPATH),$(foreach src,$(call Em_rwildcard,$(dir),*.$(CXXEXT)),$(src:$(dir)/%=%)))
     CXXSRC:=$(strip $(CXXSRC))
 endif
 ifneq (,$(findstring ..,$(CXXSRC)))
@@ -78,7 +78,7 @@ CXXSRC:=$(subst ./,,$(CXXSRC))
 # if CSRC are not specified, automatically scan all .$(CEXT) files in the 
 # current directories.
 ifeq ($(strip $(CSRC)),)
-    CSRC:=$(call RWildcard,,*.$(CEXT)) $(foreach dir,$(VPATH),$(foreach src,$(call RWildcard,$(dir),*.$(CEXT)),$(src:$(dir)/%=%)))
+    CSRC:=$(call Em_rwildcard,,*.$(CEXT)) $(foreach dir,$(VPATH),$(foreach src,$(call Em_rwildcard,$(dir),*.$(CEXT)),$(src:$(dir)/%=%)))
     CSRC:=$(strip $(CSRC))
 endif
 ifneq (,$(findstring ..,$(CSRC)))
@@ -133,7 +133,7 @@ Em_objects = $(call Em_src2obj,$(filter-out $(em_entry_list),$(CSRC) $(CXXSRC)) 
 Em_src2target = $(foreach src,$1,$(BUILD_ROOT)/$(notdir $(basename $(src))))
 
 
-$(BUILD_ROOT)/targets.mk: $(em_all_objects)
+$(BUILD_ROOT)/em_targets.mk: $(em_all_objects)
 	@rm -f $@
 	@$(foreach f,$(em_entry_list),									\
 		echo 'all: $(call Em_src2target,$f)' >> $@;					\
@@ -150,9 +150,9 @@ $(BUILD_ROOT)/lib%.so lib%.so: $(call  Em_objects,NONE)
 $(BUILD_ROOT)/lib%.a lib%.a: $(call  Em_objects,NONE)
 	$(AR) $(ARFLAGS) $@ $(call  Em_objects,NONE)
 
-all $(sort $(call Em_src2target,$(CSRC) $(CXXSRC))): $(em_all_objects) $(BUILD_ROOT)/targets.mk
+all $(sort $(call Em_src2target,$(CSRC) $(CXXSRC))): $(em_all_objects) $(BUILD_ROOT)/em_targets.mk
 	@$(if $(strip $(em_entry_list)),												\
-		$(MAKE) --no-print-directory -f  $(BUILD_ROOT)/targets.mk 					\
+		$(MAKE) --no-print-directory -f  $(BUILD_ROOT)/em_targets.mk 					\
 		$(filter-out  %.so %.a %.o %.d,$(filter $(BUILD_ROOT)/%,$(MAKECMDGOALS)))	\
 		)
 
