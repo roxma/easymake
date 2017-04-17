@@ -135,8 +135,8 @@ Em_src2target = $(foreach src,$1,$(BUILD_ROOT)/$(notdir $(basename $(src))))
 
 $(BUILD_ROOT)/em_targets.mk: $(em_all_objects)
 	@rm -f $@
-	@$(foreach f,$(em_entry_list),									\
-		echo 'all: $(call Em_src2target,$f)' >> $@;					\
+	@$(foreach f,$(em_entry_list),										\
+		echo 'all: $(call Em_src2target,$f)' >> $@;						\
 		echo '$(call Em_src2target,$f): $(call Em_objects,$f)' >> $@;	\
 		echo '	$(em_linker) $$^ $(LDFLAGS) -o $$@ $(LOADLIBES) $(LDLIBS)'	>> $@;	\
 	)
@@ -152,7 +152,7 @@ $(BUILD_ROOT)/lib%.a lib%.a: $(call  Em_objects,NONE)
 
 all $(sort $(call Em_src2target,$(CSRC) $(CXXSRC))): $(em_all_objects) $(BUILD_ROOT)/em_targets.mk
 	@$(if $(strip $(em_entry_list)),												\
-		$(MAKE) --no-print-directory -f  $(BUILD_ROOT)/em_targets.mk 					\
+		$(MAKE) --no-print-directory -f  $(BUILD_ROOT)/em_targets.mk 				\
 		$(filter-out  %.so %.a %.o %.d,$(filter $(BUILD_ROOT)/%,$(MAKECMDGOALS)))	\
 		)
 
