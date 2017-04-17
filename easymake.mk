@@ -140,7 +140,6 @@ $(BUILD_ROOT)/targets.mk: $(em_all_objects)
 		echo '$(call Em_src2target,$f): $(call Em_objects,$f)' >> $@;	\
 		echo '	$(em_linker) $$^ $(LDFLAGS) -o $$@ $(LOADLIBES) $(LDLIBS)'	>> $@;	\
 	)
-	@$(if $(strip $(em_entry_list)),,echo "all:">$@)
 
 # This recipe to handle rule "all: foo.so" or command "make foo.so"
 $(BUILD_ROOT)/lib%.so lib%.so: $(call  Em_objects,NONE)
@@ -152,7 +151,10 @@ $(BUILD_ROOT)/lib%.a lib%.a: $(call  Em_objects,NONE)
 	$(AR) $(ARFLAGS) $@ $(call  Em_objects,NONE)
 
 all $(sort $(call Em_src2target,$(CSRC) $(CXXSRC))): $(em_all_objects) $(BUILD_ROOT)/targets.mk
-	@$(MAKE) --no-print-directory -f  $(BUILD_ROOT)/targets.mk $(filter-out  %.so %.a %.o %.d,$(filter $(BUILD_ROOT)/%,$(MAKECMDGOALS)))
+	@$(if $(strip $(em_entry_list)),												\
+		$(MAKE) --no-print-directory -f  $(BUILD_ROOT)/targets.mk 					\
+		$(filter-out  %.so %.a %.o %.d,$(filter $(BUILD_ROOT)/%,$(MAKECMDGOALS)))	\
+		)
 
 
 # "check" is the standard target from standard makefile conventions
