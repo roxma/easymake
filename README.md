@@ -18,7 +18,6 @@ Features description:
 - Handles more than one entry point in the project.
 - Support both [static library(libfoo.a)](samples/staticLib/Makefile) and
   [shared library(libfoo.so)](samples/so/Makefile) building.
-- Simple [third party dependencis management](samples/dep).
 
 
 ***NOTICE***: Easymake is designed to be easy to use on simple applications,
