@@ -25,6 +25,7 @@
 
 # CFLAGS=
 # CXXFLAGS=
+# ASFLAGS=
 # LDFLAGS=
 
 # do not use the default `rv` option
@@ -37,6 +38,8 @@ BUILD_ROOT?=bin
 
 CXXEXT?=cpp
 CEXT?=c
+# assembly files
+SEXT?=S
 CC?=cc
 CXX?=c++
 AR?=ar
@@ -52,7 +55,7 @@ IS_TEST?=$(filter %_test.$(CEXT) %_test.$(CXXEXT),$(1))
 ################################################################
 
 ##
-# $(call Em_src2obj,$(CSRC) $(CXXSRC),$(BUILD_ROOT))
+# $(call Em_src2obj,$(CSRC) $(CXXSRC) $(SSRC),$(BUILD_ROOT))
 Em_src2obj=$(foreach _src,$(1),$(2)/$(basename $(_src)).o)
 
 # Recursive wildcard
@@ -63,7 +66,7 @@ ifneq (,$(filter ./%,$(BUILD_ROOT)))
     $(error Please do not use prefix "./" in variable BUILD_ROOT=$(BUILD_ROOT))
 endif
 
-# if CXXSRC are not specified, automatically scan all .$(CXXEXT) files in the 
+# if CXXSRC are not specified, automatically scan all .$(CXXEXT) files in the
 # current directories.
 ifeq ($(strip $(CXXSRC)),)
     CXXSRC:=$(call Em_rwildcard,,*.$(CXXEXT)) $(foreach dir,$(VPATH),$(foreach src,$(call Em_rwildcard,$(dir),*.$(CXXEXT)),$(src:$(dir)/%=%)))
@@ -75,7 +78,7 @@ endif
 # remove "./" in file path, which may cause pattern rules problems.
 CXXSRC:=$(subst ./,,$(CXXSRC))
 
-# if CSRC are not specified, automatically scan all .$(CEXT) files in the 
+# if CSRC are not specified, automatically scan all .$(CEXT) files in the
 # current directories.
 ifeq ($(strip $(CSRC)),)
     CSRC:=$(call Em_rwildcard,,*.$(CEXT)) $(foreach dir,$(VPATH),$(foreach src,$(call Em_rwildcard,$(dir),*.$(CEXT)),$(src:$(dir)/%=%)))
@@ -87,13 +90,25 @@ endif
 # remove "./" in file path, which may cause pattern rules problems.
 CSRC:=$(subst ./,,$(CSRC))
 
+# if SSRC are not specified, automatically scan all .$(SEXT) files in the
+# current directories.
+ifeq ($(strip $(SSRC)),)
+    SSRC:=$(call Em_rwildcard,,*.$(SEXT)) $(foreach dir,$(VPATH),$(foreach src,$(call Em_rwildcard,$(dir),*.$(SEXT)),$(src:$(dir)/%=%)))
+    SSRC:=$(strip $(SSRC))
+endif
+ifneq (,$(findstring ..,$(SSRC)))
+    $(error ".." should not appear in the .S source list: $(SSRC))
+endif
+# remove "./" in file path, which may cause pattern rules problems.
+SSRC:=$(subst ./,,$(SSRC))
+
 # if the project has c++ source, use g++ for linking instead of gcc
 ifneq ($(strip $(CXXSRC)),)
     em_linker:=$(CXX)
 endif
 em_linker?=$(CC)
 
-em_all_objects:=$(call Em_src2obj,$(CSRC) $(CXXSRC),$(BUILD_ROOT))
+em_all_objects:=$(call Em_src2obj,$(CSRC) $(CXXSRC) $(SSRC) ,$(BUILD_ROOT))
 
 
 # A file that contains a list of entries detected by easymake.
@@ -106,7 +121,7 @@ all:
 # as entry.
 $(BUILD_ROOT)/%.o: %.$(CXXEXT)
 	@mkdir -p $(dir $@)
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(GEN_DEP_FLAG) -c -o $@  $<
+	$(CXX) $(CXXFLAGS) $(GEN_DEP_FLAG) -c -o $@  $<
 	@if [ $$(nm -g --format="posix" $@ | grep -c "^main T") -eq 1 ]; then 		\
 		echo "$(patsubst $(BUILD_ROOT)/%.o,%.$(CXXEXT),$@)" >> $(em_f_entries);	\
 		sort -u $(em_f_entries) -o $(em_f_entries); 							\
@@ -114,9 +129,17 @@ $(BUILD_ROOT)/%.o: %.$(CXXEXT)
 
 $(BUILD_ROOT)/%.o: %.$(CEXT)
 	@mkdir -p $(dir $@)
-	$(CC) $(CPPFLAGS) $(CFLAGS) $(GEN_DEP_FLAG)  -c -o $@ $<
+	$(CC) $(CFLAGS) $(GEN_DEP_FLAG)  -c -o $@ $<
 	@if [ $$(nm -g --format="posix" $@ | grep -c "^main T") -eq 1 ]; then		\
 		echo "$(patsubst $(BUILD_ROOT)/%.o,%.$(CEXT),$@)" >> $(em_f_entries);	\
+		sort -u $(em_f_entries) -o $(em_f_entries); 							\
+		fi;
+
+$(BUILD_ROOT)/%.o: %.$(SEXT)
+	@mkdir -p $(dir $@)
+	$(CC) $(ASFLAGS) $(GEN_DEP_FLAG)  -c -o $@ $<
+	@if [ $$(nm -g --format="posix" $@ | grep -c "^main T") -eq 1 ]; then		\
+		echo "$(patsubst $(BUILD_ROOT)/%.o,%.$(SEXT),$@)" >> $(em_f_entries);	\
 		sort -u $(em_f_entries) -o $(em_f_entries); 							\
 		fi;
 
@@ -126,10 +149,10 @@ ifneq ($(strip $(em_all_objects)),)
 endif
 
 # Read detected entries from file and filter out the non-existed source
-em_entry_list = $(ENTRY_LIST) $(filter $(CXXSRC) $(CSRC),$(shell cat $(em_f_entries) 2>/dev/null))
+em_entry_list = $(ENTRY_LIST) $(filter $(CSRC) $(CXXSRC) $(SSRC) ,$(shell cat $(em_f_entries) 2>/dev/null))
 
 Em_entry   = $(if $(filter none NONE,$(1)),,$(1))
-Em_objects = $(call Em_src2obj,$(filter-out $(em_entry_list),$(CSRC) $(CXXSRC)) $(call Em_entry,$(1)),$(BUILD_ROOT))
+Em_objects = $(call Em_src2obj,$(filter-out $(em_entry_list),$(CSRC) $(CXXSRC) $(SSRC)) $(call Em_entry,$(1)),$(BUILD_ROOT))
 Em_src2target = $(foreach src,$1,$(BUILD_ROOT)/$(notdir $(basename $(src))))
 
 $(em_all_objects): $(filter-out $(BUILD_ROOT)/%,$(MAKEFILE_LIST))
@@ -151,7 +174,7 @@ $(BUILD_ROOT)/lib%.so lib%.so: $(call  Em_objects,NONE)
 $(BUILD_ROOT)/lib%.a lib%.a: $(call  Em_objects,NONE)
 	$(AR) $(ARFLAGS) $@ $(call  Em_objects,NONE)
 
-all $(sort $(call Em_src2target,$(CSRC) $(CXXSRC))): $(em_all_objects) $(BUILD_ROOT)/em_targets.mk
+all $(sort $(call Em_src2target,$(CSRC) $(CXXSRC) $(SSRC))): $(em_all_objects) $(BUILD_ROOT)/em_targets.mk
 	@$(if $(strip $(em_entry_list)),												\
 		$(MAKE) --no-print-directory -f  $(BUILD_ROOT)/em_targets.mk 				\
 		$(filter-out  %.so %.a %.o %.d,$(filter $(BUILD_ROOT)/%,$(MAKECMDGOALS)))	\
